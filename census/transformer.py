@@ -70,9 +70,9 @@ class ValueMapper(object):
 
     # return the df after the mapping has been processed
     def map_result(self):
-        new_df = self.df
+        new_df = self.df.copy(deep=True)
         for col in self.get_string_cols():
-            new_df[col] = self.new_df[col].map(self.mapping[col])
+            new_df[col] = new_df[col].map(self.mapping[col])
         return new_df
 
 
