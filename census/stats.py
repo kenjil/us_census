@@ -7,6 +7,8 @@ class BasicStatistic(object):
     FIG_SIZE = (18, 200)  # inches
     FIG_COLS = 3
     FIG_LINES = 42
+    COLOR = ['blue', 'green']
+    LABEL = ['<50.000$', '>50.000$']
 
     """Basic statistics utils for Numerical Census DataFrame"""
     def __init__(self, df,
@@ -40,18 +42,26 @@ class BasicStatistic(object):
             cols_values[col] = self.df[col].unique()
         return cols_values
 
-    def __plot_stats_raw(self, col, max_bins=100):
+    def __plot_stats_raw(self, col, max_bins=100, color=COLOR,
+                         label=LABEL, histtype='barstacked'):
         bins = min(len(self.cols_values[col]), max_bins)
-        P.hist(self.__splitted(col), bins=bins, histtype='barstacked')
+        P.hist(self.__splitted(col), bins=bins, histtype=histtype,
+               color=color,
+               label=label)
         P.title("%s raw data" % col)
+        P.legend()
 
-    def __plot_stats_no_na(self, col, max_bins=100):
+    def __plot_stats_no_na(self, col, max_bins=100, color=COLOR,
+                           label=LABEL, histtype='barstacked'):
         x = self.__splitted(col)
         x = [s[s >= 0] for s in x]
         col_values = [v for v in self.cols_values[col] if v >= 0]
         bins = min(len(col_values), max_bins)
-        P.hist(x, bins=bins, histtype='barstacked')
+        P.hist(x, bins=bins, histtype=histtype,
+               color=color,
+               label=label)
         P.title("%s with non meaningfull removed" % col)
+        P.legend()
 
     def __plot_desc(self, col, max_bins=100):
         if col in self.cols_infos:
