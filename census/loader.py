@@ -10,7 +10,7 @@ class CensusLoader(object):
         super(CensusLoader, self).__init__()
         self.csvfile = csvfile
 
-    # return a dataframe of predicitives, series of incomes
+    # return a dataframe containing census data
     def get_data(self):
         whole = read_csv(
             self.csvfile,
