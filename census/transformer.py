@@ -10,7 +10,8 @@ class ValueMapper(object):
     def __init__(self, df):
         super(ValueMapper, self).__init__()
         self.df = df
-        self.mapping = self.default_mapper()
+        # mapping is a bijective correspondance
+        self.mapping = self.default_mapping()
 
     # list of columns where the mapper should be build
     def get_string_cols(self):
@@ -19,15 +20,15 @@ class ValueMapper(object):
         return [col for col in cols if self.df[col].dtype in col_types]
 
     # build mapper that assign to each unique value an integer
-    def default_mapper(self):
+    def default_mapping(self):
         unique_values = {}
         for col in self.get_string_cols():
             unique_values[col] = \
-                self.__build_mapper_from_list(self.df[col].unique())
+                self.__build_mapping_from_list(self.df[col].unique())
         return unique_values
 
     # build a dict from the unique values
-    def __build_mapper_from_list(self, lst):
+    def __build_mapping_from_list(self, lst):
         # numeric value for non_valid
         non_valids = (' Not in universe', ' Do not know', ' ?')
         j_n = -1  # will be increment on value encounter
@@ -37,17 +38,18 @@ class ValueMapper(object):
         # value for valid
         j_v = 0
 
-        # TODO buggy when value mix booleans and other valid values
+        # TODO buggy when values mix booleans and other valid values
         # keys 0 and 1 will be overriden !
         dct = {}
         for i in range(len(lst)):
-            if lst[i] in non_valids:
-                dct[j_n] = lst[i]
+            value = lst[i]
+            if value in non_valids:
+                dct[value] = j_n
                 j_n -= 1
-            elif lst[i] in booleans:
-                dct[booleans[lst[i]]] = lst[i]
+            elif value in booleans:
+                dct[value] = booleans[value]
             else:
-                dct[j_v] = lst[i]
+                dct[value] = j_v
                 j_v += 1
         return dct
 
@@ -60,8 +62,6 @@ class ValueMapper(object):
     def from_yaml(self, yaml_filepath):
         with open(yaml_filepath, 'rt') as infile:
             self.mapping = yaml.load(infile.read())
-
-
 
 
 if __name__ == '__main__':
