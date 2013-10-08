@@ -17,7 +17,7 @@ class ValueMapper(object):
         # values considered as non valid
         self.non_valids = non_valids
         # mapping is a bijective correspondance
-        self.mapping = self.default_mapping()
+        self.mapping = self.__default_mapping()
 
     # list of columns where the mapper should be build
     def get_string_cols(self):
@@ -26,7 +26,7 @@ class ValueMapper(object):
         return [col for col in cols if self.df[col].dtype in col_types]
 
     # build mapper that assign to each unique value an integer
-    def default_mapping(self):
+    def __default_mapping(self):
         unique_values = {}
         for col in self.get_string_cols():
             unique_values[col] = \
@@ -76,6 +76,7 @@ class ValueMapper(object):
             new_df[col] = new_df[col].map(self.mapping[col])
         return new_df
 
+    # return a string with infos on col and its numerical values
     def get_col_info(self, col):
         col_meta_infos = [line for line in cols_desc if line[0] == col]
         col_infos = {
@@ -88,9 +89,9 @@ class ValueMapper(object):
                 col_infos[k] += [s]
         else:
             col_infos['Type'] = 'numeric'
-        return self.dict_to_string(col_infos)
+        return self.__dict_to_string(col_infos)
 
-    def dict_to_string(self, col_infos):
+    def __dict_to_string(self, col_infos):
         s = []
         for k, v in sorted(col_infos.iteritems()):
             s += ["%s : %s" % (str(k), str(v))]
