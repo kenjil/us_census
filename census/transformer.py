@@ -7,9 +7,14 @@ class ValueMapper(object):
     """class to produce a mapper that sets
     the replacement of the non numeric values to numeric value
     in dataframe"""
-    def __init__(self, df):
+
+    NON_VALIDS_DEFAULT = [' Not in universe', ' Do not know', ' ?']
+
+    def __init__(self, df, non_valids=NON_VALIDS_DEFAULT):
         super(ValueMapper, self).__init__()
         self.df = df
+        # values considered as non valid
+        self.non_valids = non_valids
         # mapping is a bijective correspondance
         self.mapping = self.default_mapping()
 
@@ -30,7 +35,7 @@ class ValueMapper(object):
     # build a dict from the unique values
     def __build_mapping_from_list(self, lst):
         # numeric value for non_valid
-        non_valids = (' Not in universe', ' Do not know', ' ?')
+        # non valids values are in self.non_valids
         j_n = -1  # will be increment on value encounter
 
         booleans = {' Yes': 1, ' No': 0}
@@ -43,7 +48,7 @@ class ValueMapper(object):
         dct = {}
         for i in range(len(lst)):
             value = lst[i]
-            if value in non_valids:
+            if value in self.non_valids:
                 dct[value] = j_n
                 j_n -= 1
             elif value in booleans:
