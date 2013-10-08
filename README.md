@@ -1,10 +1,12 @@
 US CENSUS ML EXERCICE
 =====================
 
-# Usage
+# Install
 
 ## Data download and location
 data must be download from [here](http://thomasdata.s3.amazonaws.com/ds/us_census_full.zip) and unzipped into the `data` directory.
 
+# Usage
+
 ## Running code
-Code must be run with the ipython script  `ipython/run.ipynb`.
+Code must be run with the ipython notebook script  `ipython/run.ipynb`.
