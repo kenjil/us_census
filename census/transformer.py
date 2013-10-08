@@ -68,6 +68,13 @@ class ValueMapper(object):
         with open(yaml_filepath, 'rt') as infile:
             self.mapping = yaml.load(infile.read())
 
+    # return the df after the mapping has been processed
+    def map_result(self):
+        new_df = self.df
+        for col in self.get_string_cols():
+            new_df[col] = self.new_df[col].map(self.mapping[col])
+        return new_df
+
 
 if __name__ == '__main__':
     pass
