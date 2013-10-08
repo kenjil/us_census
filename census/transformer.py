@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import yaml
+from meta import cols_desc
 
 
 class ValueMapper(object):
@@ -74,6 +75,26 @@ class ValueMapper(object):
         for col in self.get_string_cols():
             new_df[col] = new_df[col].map(self.mapping[col])
         return new_df
+
+    def get_col_info(self, col):
+        col_meta_infos = [line for line in cols_desc if line[0] == col]
+        col_infos = {
+            'Code': col_meta_infos[0][0],
+            'Description': col_meta_infos[0][1]
+        }
+        if col in self.mapping:
+            for s, k in self.mapping[col].iteritems():
+                col_infos.setdefault(k, [])
+                col_infos[k] += [s]
+        else:
+            col_infos['Type'] = 'numeric'
+        return self.dict_to_string(col_infos)
+
+    def dict_to_string(self, col_infos):
+        s = []
+        for k, v in sorted(col_infos.iteritems()):
+            s += ["%s : %s" % (str(k), str(v))]
+        return "\n".join(s)
 
 
 if __name__ == '__main__':
