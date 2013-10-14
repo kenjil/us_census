@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from pandas import read_csv
-from meta import cols_desc
 
 
 class CensusLoader(object):
-
     """Loader of Census csv dataset"""
-    def __init__(self, csvfile):
+    # csvfile : csv pathfile
+    # cols : tuple of pairs (col_code, col_description)
+    def __init__(self, csvfile, cols=()):
         super(CensusLoader, self).__init__()
         self.csvfile = csvfile
+        self.cols = cols
 
     # return a dataframe containing census data
     def get_data(self):
@@ -21,12 +22,8 @@ class CensusLoader(object):
         return whole
 
     @property
-    def cols(self):
-        return cols_desc
-
-    @property
     def cols_code(self):
-        return (cols_desc[i][0] for i in range(len(cols_desc)))
+        return (self.cols[i][0] for i in range(len(self.cols)))
 
 if __name__ == '__main__':
     csloader = CensusLoader('data/census_income_learn.csv')
