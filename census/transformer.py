@@ -9,13 +9,18 @@ class ValueMapper(object):
     the replacement of the non numeric values to numeric value
     in dataframe"""
 
-    NON_VALIDS_DEFAULT = [' Not in universe', ' Do not know', ' ?']
+    NON_VALIDS_DEFAULT = [' Do not know', ' ?']
+    SPECIALS_DEFAULT = [' Not in universe']
 
-    def __init__(self, df, non_valids=NON_VALIDS_DEFAULT):
+    def __init__(self, df,
+                 non_valids=NON_VALIDS_DEFAULT,
+                 specials=SPECIALS_DEFAULT):
         super(ValueMapper, self).__init__()
         self.df = df
         # values considered as non valid
         self.non_valids = non_valids
+        # values considered as specials
+        self.specials = specials
         # mapping is a bijective correspondance
         self.mapping = self.__default_mapping()
 
@@ -35,8 +40,8 @@ class ValueMapper(object):
 
     # build a dict from the unique values
     def __build_mapping_from_list(self, lst):
-        # numeric value for non_valid
-        # non valids values are in self.non_valids
+        # non valids and special values are treated the same way
+        negative_indexed_vals = self.specials + self.non_valids
         j_n = -1  # will be increment on value encounter
 
         booleans = {' Yes': 1, ' No': 0}
@@ -49,7 +54,7 @@ class ValueMapper(object):
         dct = {}
         for i in range(len(lst)):
             value = lst[i]
-            if value in self.non_valids:
+            if value in negative_indexed_vals:
                 dct[value] = j_n
                 j_n -= 1
             elif value in booleans:
@@ -60,12 +65,12 @@ class ValueMapper(object):
         return dct
 
     # save map to file
-    def to_yaml(self, yaml_filepath):
+    def to_yamlfile(self, yaml_filepath):
         with open(yaml_filepath, 'w') as outfile:
             outfile.write(yaml.dump(self.mapping, default_flow_style=False))
 
     # load map from file
-    def from_yaml(self, yaml_filepath):
+    def from_yamlfile(self, yaml_filepath):
         with open(yaml_filepath, 'rt') as infile:
             self.mapping = yaml.load(infile.read())
 
