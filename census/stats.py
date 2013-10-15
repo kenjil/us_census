@@ -25,7 +25,7 @@ class BasicStatistic(object):
     # col is a string
     def plot_class_stat(self, col):
         # plot raw data
-        t = self.count_values(col)
+        t = self.count_values_per_target(col)
         idx_arrangements = [self.specials, self.non_valids]
         if idx_arrangements:
             t = self.arrange_reindex(t, idx_arrangements)
@@ -48,11 +48,11 @@ class BasicStatistic(object):
     def plot_num_stat(self, col, stepped=None, legend=None):
         # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
-        t = self.count_values(col)
+        t = self.count_values_per_target(col)
         t.plot(ax=axes[0])
         # plot percentage data (stepped if needed)
         if stepped is not None:
-            t = self.count_values(stepped)
+            t = self.count_values_per_target(stepped)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=axes[1], stacked=True)
         # add some text for infos
@@ -85,7 +85,7 @@ class BasicStatistic(object):
         return col_df, legend
 
     # get the table counting pairs (col_value, TARGET_value)
-    def count_values(self, col):
+    def count_values_per_target(self, col):
         grouped = self.df.groupby([col, 'TARGET'])
         return grouped.size().unstack().fillna(0)
 
