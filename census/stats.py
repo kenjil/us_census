@@ -10,9 +10,11 @@ class BasicStatistic(object):
     BARH_FIG_WIDTH = 8  # inches
 
     """Docstring"""
-    def __init__(self, df):
+    def __init__(self, df, non_valids=[], specials=[]):
         super(BasicStatistic, self).__init__()
         self.df = df
+        self.non_valids = non_valids
+        self.specials = specials
 
     # return the percentage dataframe of a numerical columns dataframe
     def percentage(self, num_df):
@@ -20,7 +22,10 @@ class BasicStatistic(object):
 
     # plot statistics of col when it is not numeric
     def plot_class_stat(self, col):
-        t = self.groupby_unstacked(col)
+        t = self.count_values(col)
+        idx_arrangements = [self.specials, self.non_valids]
+        if idx_arrangements:
+            t = self.arrange_reindex(t, idx_arrangements)
         fig, axes = P.subplots(2, 1,
                                figsize=(self.BARH_FIG_WIDTH,
                                         len(t)*self.BARH_HEIGHT + 2)
@@ -33,10 +38,10 @@ class BasicStatistic(object):
     # plot statistic of col when numeric
     def plot_num_stat(self, col, stepped=None, legend=None):
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
-        t = self.groupby_unstacked(col)
+        t = self.count_values(col)
         t.plot(ax=axes[0])
         if stepped is not None:
-            t = self.groupby_unstacked(stepped)
+            t = self.count_values(stepped)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=axes[1], stacked=True)
         if legend:
@@ -61,16 +66,16 @@ class BasicStatistic(object):
         return col_df, legend
 
     # get the table counting pairs (col_value, TARGET_value)
-    def groupby_unstacked(self, col):
+    def count_values(self, col):
         grouped = self.df.groupby([col, 'TARGET'])
         return grouped.size().unstack().fillna(0)
 
     # reindex a class col_df
-    # first puts in the index items appearing in the arrangements
-    # then add the remaining items
-    def arrange_reindex(self, col_df, arrangements=[]):
+    # All index items appearing in the idx_arrangements at the end
+    def arrange_reindex(self, col_df, idx_arrangements=[]):
         new_index = []
-        for a in arrangements:
+        for a in idx_arrangements:
             new_index += [i for i in col_df.index if i in a]
-        new_index = Index([i for i in col_df.index if i not in new_index] + new_index)
+        new_index = Index([i for i in col_df.index if i not in new_index]
+                          + new_index)
         return col_df.reindex(new_index)
