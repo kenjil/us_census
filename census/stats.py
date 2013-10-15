@@ -1,118 +1,76 @@
 # -*- coding: utf-8 -*-
 import pylab as P
+from numpy import floor
+from pandas import Index
 
 
 class BasicStatistic(object):
 
-    FIG_SIZE = (18, 200)  # inches
-    FIG_COLS = 3
-    FIG_LINES = 42
-    COLOR = ['blue', 'green']
-    LABEL = ['<50.000$', '>50.000$']
+    BARH_HEIGHT = 0.4  # inches
+    BARH_FIG_WIDTH = 8  # inches
 
-    """Basic statistics utils for Numerical Census DataFrame"""
-    def __init__(self, df,
-                 fig_size=FIG_SIZE,
-                 fig_cols=FIG_COLS,
-                 fig_lines=FIG_LINES,
-                 cols_infos={}):
+    """Docstring"""
+    def __init__(self, df):
         super(BasicStatistic, self).__init__()
-        # Data
         self.df = df
-        self.cols_infos = cols_infos
-        # put in memory
-        self.cols_values = self.__cols_values()
-        self.df_splitted = self.__split_on_target()
-        # figure
-        self.fig_size = fig_size
-        self.fig_cols = fig_cols
-        self.fig_lines = fig_lines
 
-    # split df into as many df as there's value in target
-    def __split_on_target(self):
-        splitted = {}
-        for v in self.df['TARGET'].unique():
-            splitted[v] = self.df[self.df['TARGET'] == v]
-        return splitted.values()
+    # return the percentage dataframe of a numerical columns dataframe
+    def percentage(self, num_df):
+        return num_df.astype(float).div(num_df.sum(1), axis=0).fillna(0)
 
-    # dict of col's unique values
-    def __cols_values(self):
-        cols_values = {}
-        for col in self.df.columns:
-            cols_values[col] = self.df[col].unique()
-        return cols_values
+    # plot statistics of col when it is not numeric
+    def plot_class_stat(self, col):
+        t = self.groupby_unstacked(col)
+        fig, axes = P.subplots(2, 1,
+                               figsize=(self.BARH_FIG_WIDTH,
+                                        len(t)*self.BARH_HEIGHT + 2)
+                               )
+        t.plot(kind='barh', stacked=True, ax=axes[0])
+        # percentage display
+        t_perct = self.percentage(t)
+        t_perct.plot(kind='barh', stacked=True, ax=axes[1])
 
-    def __plot_stats_raw(self, col, max_bins=100, color=COLOR,
-                         label=LABEL, histtype='barstacked'):
-        bins = min(len(self.cols_values[col]), max_bins)
-        P.hist(self.__splitted(col), bins=bins, histtype=histtype,
-               color=color,
-               label=label)
-        P.title("%s raw data" % col)
-        P.legend()
+    # plot statistic of col when numeric
+    def plot_num_stat(self, col, stepped=None, legend=None):
+        fig, axes = P.subplots(2, 1, figsize=(10, 7))
+        t = self.groupby_unstacked(col)
+        t.plot(ax=axes[0])
+        if stepped is not None:
+            t = self.groupby_unstacked(stepped)
+        t_perct = t.astype(float).div(t.sum(1), axis=0)
+        t_perct.plot(kind='bar', ax=axes[1], stacked=True)
+        if legend:
+            fig.text(0.15, 0.17, legend, color='red', fontweight='bold')
+        if stepped is not None:
+            fig.text(0.25, 0.05, "subdivision bins",
+                     horizontalalignment='center')
 
-    def __plot_stats_no_na(self, col, max_bins=100, color=COLOR,
-                           label=LABEL, histtype='barstacked'):
-        x = self.__splitted(col)
-        x = [s[s >= 0] for s in x]
-        col_values = [v for v in self.cols_values[col] if v >= 0]
-        bins = min(len(col_values), max_bins)
-        P.hist(x, bins=bins, histtype=histtype,
-               color=color,
-               label=label)
-        P.title("%s with non meaningfull removed" % col)
-        P.legend()
+    # change a continuous numerical columns dataframe
+    # into a step function
+    # When zero_aside is True, the step 0 is dedicated to value=0
+    def stepped(self, col_df, step_nb, zero_aside=False):
+        col_df = col_df.astype(float)
+        stage = (col_df.max() + 1) / step_nb
+        if zero_aside:
+            col_df = col_df - 1.0
+        col_df = floor(col_df / stage)
+        legend = None
+        if zero_aside:
+            col_df = col_df + 1
+            legend = '0\'th bin contains\nonly values zero.'
+        return col_df, legend
 
-    def __plot_desc(self, col, max_bins=100):
-        if col in self.cols_infos:
-            lines_nb = self.cols_infos[col].count("\n") + 1
-            if lines_nb > 18:
-                fontsize = 180 / lines_nb
-            else:
-                fontsize = 10
-            P.text(0.05, 0.5, self.cols_infos[col],
-                   verticalalignment='center',
-                   fontsize=fontsize)
-                # style='italic',
-                # bbox={'facecolor':'red', 'alpha':0.5, 'pad':10}
-            P.title("%s infos" % col)
+    # get the table counting pairs (col_value, TARGET_value)
+    def groupby_unstacked(self, col):
+        grouped = self.df.groupby([col, 'TARGET'])
+        return grouped.size().unstack().fillna(0)
 
-    # returns a list of series of the splitted dfs for columns col
-    def __splitted(self, col):
-        return [df[col] for df in self.df_splitted]
-
-    def plot_all_stats(self):
-        P.figure(figsize=self.fig_size)
-
-        fig_pos = 0
-        for col in self.df.columns:
-            fig_pos = self.plot_stats(col, fig_pos=fig_pos)
-
-    def plot_stats(self, col, max_bins=100, fig_pos=None):
-        # when called alone
-        if fig_pos is None:
-            fig_lines = 1
-            fig_cols = 3
-            fig_size = (18, 4)
-            fig_pos = 0
-            P.figure(num=col, figsize=fig_size)
-        else:
-            fig_lines = self.fig_lines
-            fig_cols = self.fig_cols
-
-        # raw stats
-        fig_pos += 1
-        P.subplot(fig_lines, fig_cols, fig_pos)
-        self.__plot_stats_raw(col)
-
-        # col infos
-        fig_pos += 1
-        P.subplot(fig_lines, fig_cols, fig_pos)
-        self.__plot_desc(col)
-
-        # non meaningfull data removed stats
-        fig_pos += 1
-        if len([v for v in self.cols_values[col] if v < 0]) > 0:
-            P.subplot(fig_lines, fig_cols, fig_pos)
-            self.__plot_stats_no_na(col)
-        return fig_pos
+    # reindex a class col_df
+    # first puts in the index items appearing in the arrangements
+    # then add the remaining items
+    def arrange_reindex(self, col_df, arrangements=[]):
+        new_index = []
+        for a in arrangements:
+            new_index += [i for i in col_df.index if i in a]
+        new_index = Index([i for i in col_df.index if i not in new_index] + new_index)
+        return col_df.reindex(new_index)
