@@ -10,18 +10,21 @@ class BasicStatistic(object):
     BARH_FIG_WIDTH = 8  # inches
 
     """Docstring"""
-    def __init__(self, df, non_valids=[], specials=[]):
+    def __init__(self, df, non_valids=[], specials=[], cols_desc={}):
         super(BasicStatistic, self).__init__()
         self.df = df
         self.non_valids = non_valids
         self.specials = specials
+        self.cols_desc = cols_desc
 
     # return the percentage dataframe of a numerical columns dataframe
     def percentage(self, num_df):
         return num_df.astype(float).div(num_df.sum(1), axis=0).fillna(0)
 
     # plot statistics of col when it is not numeric
+    # col is a string
     def plot_class_stat(self, col):
+        # plot raw data
         t = self.count_values(col)
         idx_arrangements = [self.specials, self.non_valids]
         if idx_arrangements:
@@ -34,21 +37,37 @@ class BasicStatistic(object):
         # percentage display
         t_perct = self.percentage(t)
         t_perct.plot(kind='barh', stacked=True, ax=axes[1])
+        # add some text for infos
+        self.add_col_desc(fig, col)
+
 
     # plot statistic of col when numeric
+    # col is a string
+    # stepped is a col dataframe
+    # legend is a string
     def plot_num_stat(self, col, stepped=None, legend=None):
+        # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         t = self.count_values(col)
         t.plot(ax=axes[0])
+        # plot percentage data (stepped if needed)
         if stepped is not None:
             t = self.count_values(stepped)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=axes[1], stacked=True)
+        # add some text for infos
+        self.add_col_desc(fig, col)
         if legend:
             fig.text(0.15, 0.17, legend, color='red', fontweight='bold')
         if stepped is not None:
             fig.text(0.25, 0.05, "subdivision bins",
                      horizontalalignment='center')
+
+    def add_col_desc(self, fig, col):
+        fig.text(0, 0.95, "%s (%s)" % (col, self.cols_desc[col]),
+                 # horizontalalignment='center',
+                 fontweight='bold',
+                 fontsize=14)
 
     # change a continuous numerical columns dataframe
     # into a step function

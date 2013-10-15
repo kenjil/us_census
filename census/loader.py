@@ -16,17 +16,10 @@ class CensusLoader(object):
         whole = read_csv(
             self.csvfile,
             header=None,
-            names=self.cols_code
+            names=self.cols
             )
         whole.index.name = 'individual'
         return whole
 
-    @property
-    def cols_code(self):
-        return (self.cols[i][0] for i in range(len(self.cols)))
-
 if __name__ == '__main__':
-    csloader = CensusLoader('data/census_income_learn.csv')
-    # print(csloader.get_data())
-    cols = csloader.cols
-    print cols
+    pass
