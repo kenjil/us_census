@@ -42,10 +42,11 @@ class BasicStatistic(object):
 
     # plot statistic of col when numeric
     # col is a string
-    # stepped is a col dataframe
-    # legend is a string
+    # perct_col is a col dataframe
+    # perct_legend is a string
     def plot_num_stat(self, col,
-                      stepped=None, legend=None, no_plot_zero=False):
+                      perct_col=None, perct_legend=None,
+                      no_plot_zero=False):
         # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         t = self.count_values_per_target(col)
@@ -53,9 +54,9 @@ class BasicStatistic(object):
             zeros_nb = sum(t.ix[0])
             t = t.ix[t.index != 0]
         t.plot(ax=axes[0])
-        # plot percentage data (stepped if needed)
-        if stepped is not None:
-            t = self.count_values_per_target(stepped)
+        # plot percentage data (perct_col if needed)
+        if perct_col is not None:
+            t = self.count_values_per_target(perct_col)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=axes[1], stacked=True)
         # add some text for infos
@@ -64,9 +65,9 @@ class BasicStatistic(object):
             fig.text(0.15, 0.67,
                      "zero value not plotted : %d" % zeros_nb,
                      color='red', fontweight='bold')
-        if legend:
-            fig.text(0.15, 0.17, legend, color='red', fontweight='bold')
-        if stepped is not None:
+        if perct_legend:
+            fig.text(0.15, 0.17, perct_legend, color='red', fontweight='bold')
+        if perct_col is not None:
             fig.text(0.25, 0.05, "subdivision bins",
                      horizontalalignment='center')
 
@@ -88,7 +89,7 @@ class BasicStatistic(object):
         legend = None
         if zero_aside:
             col_df = col_df + 1
-            legend = '0\'th bin contains\nonly values zero.'
+            legend = '0\'th bin contains\nonly value zero.'
         return col_df, legend
 
     # get the table counting pairs (col_value, TARGET_value)
