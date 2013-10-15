@@ -40,15 +40,18 @@ class BasicStatistic(object):
         # add some text for infos
         self.add_col_desc(fig, col)
 
-
     # plot statistic of col when numeric
     # col is a string
     # stepped is a col dataframe
     # legend is a string
-    def plot_num_stat(self, col, stepped=None, legend=None):
+    def plot_num_stat(self, col,
+                      stepped=None, legend=None, no_plot_zero=False):
         # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         t = self.count_values_per_target(col)
+        if no_plot_zero:
+            zeros_nb = sum(t.ix[0])
+            t = t.ix[t.index != 0]
         t.plot(ax=axes[0])
         # plot percentage data (stepped if needed)
         if stepped is not None:
@@ -57,6 +60,10 @@ class BasicStatistic(object):
         t_perct.plot(kind='bar', ax=axes[1], stacked=True)
         # add some text for infos
         self.add_col_desc(fig, col)
+        if no_plot_zero:
+            fig.text(0.15, 0.67,
+                     "zero value not plotted : %d" % zeros_nb,
+                     color='red', fontweight='bold')
         if legend:
             fig.text(0.15, 0.17, legend, color='red', fontweight='bold')
         if stepped is not None:
