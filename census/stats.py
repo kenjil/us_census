@@ -46,11 +46,9 @@ class BasicStatistic(object):
     def plot_num_stat(self, col, no_plot_zero=False,
                       perct_steps=0, perct_zero_aside=False
                       ):
-        # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         ax_raw, ax_perct = tuple(axes)
         self.plot_num_stat_raw(col, no_plot_zero=no_plot_zero, ax=ax_raw)
-        # plot percentage data (perct_col if needed)
         self.plot_num_stat_perct(col,
                                  steps=perct_steps,
                                  zero_aside=perct_zero_aside,
