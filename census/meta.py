@@ -4,14 +4,14 @@ cols = (
     # CODE              # rank
     'AGE',              # 0
     'WORKER',           # 1
-    'INDUS_RECODE',     # 2
-    'OCCUP_RECODE',     # 3
+    'INDUS_D_CODE',     # 2
+    'OCCUP_D_CODE',     # 3
     'EDU',              # 4
     'WPERH',            # 5
     'EDULW',            # 6
     'MARIT',            # 7
-    'INDUS_CODE',       # 8
-    'OCCUP_CODE',       # 9
+    'INDUS_M_CODE',       # 8
+    'OCCUP_M_CODE',       # 9
     'RACE',             # 10
     'HISP',             # 11
     'SEX',              # 12
@@ -50,14 +50,14 @@ cols_desc = {
     # CODE              description
     'AGE':             'age',
     'WORKER':          'class of worker',
-    'INDUS_RECODE':    'detailed industry recode',
-    'OCCUP_RECODE':    'detailed occupation recode',
+    'INDUS_D_CODE':    'detailed industry recode',
+    'OCCUP_D_CODE':    'detailed occupation recode',
     'EDU':             'education',
     'WPERH':           'wage per hour',
     'EDULW':           'enroll in edu inst last wk',
     'MARIT':           'marital stat',
-    'INDUS_CODE':      'major industry code',
-    'OCCUP_CODE':      'major occupation code',
+    'INDUS_M_CODE':      'major industry code',
+    'OCCUP_M_CODE':      'major occupation code',
     'RACE':            'race',
     'HISP':            'hispanic origin',
     'SEX':             'sex',
