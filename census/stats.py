@@ -42,33 +42,45 @@ class BasicStatistic(object):
 
     # plot statistic of col when numeric
     # col is a string
-    # perct_col is a col dataframe
-    # perct_legend is a string
-    def plot_num_stat(self, col,
-                      perct_col=None, perct_legend=None,
-                      no_plot_zero=False):
+    # perct_steps is of number bins for percentage plot
+    def plot_num_stat(self, col, no_plot_zero=False,
+                      perct_steps=0, perct_zero_aside=False
+                      ):
         # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         ax_raw, ax_perct = tuple(axes)
+        self.plot_num_stat_raw(col, no_plot_zero=no_plot_zero, ax=ax_raw)
+        # plot percentage data (perct_col if needed)
+        self.plot_num_stat_perct(col,
+                                 steps=perct_steps,
+                                 zero_aside=perct_zero_aside,
+                                 ax=ax_perct)
+        self.add_col_desc(fig, col)
+
+    def plot_num_stat_raw(self, col, no_plot_zero=False, ax=None):
         t = self.count_values_per_target(col)
         if no_plot_zero:
             zeros_nb = sum(t.ix[0])
             t = t.ix[t.index != 0]
-        t.plot(ax=ax_raw, marker='o')
-        ax_raw.set_xlabel("raw data")
+        t.plot(ax=ax, marker='o')
+        ax.set_xlabel("raw data")
         if no_plot_zero:
-            ax_raw.set_ylabel("zero value not plotted : %d" % (zeros_nb),
-                              color='red', fontweight='bold')
-        # plot percentage data (perct_col if needed)
-        if perct_col is not None:
+            ax.set_ylabel("zero value not plotted :\n%d" % (zeros_nb),
+                          color='red', fontweight='bold')
+
+    def plot_num_stat_perct(self, col, steps=0, zero_aside=False, ax=None):
+        if steps > 0:
+            perct_col, legend = \
+                self.stepped(self.df[col], steps, zero_aside=zero_aside)
             t = self.count_values_per_target(perct_col)
+        else:
+            t = self.count_values_per_target(col)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
-        t_perct.plot(kind='bar', ax=ax_perct, stacked=True)
-        self.add_col_desc(fig, col)
-        if perct_legend:
-            ax_perct.text(0.15, 0.17, perct_legend, color='red', fontweight='bold')
-        if perct_col is not None:
-            ax_perct.set_xlabel("subdivision bins")
+        t_perct.plot(kind='bar', ax=ax, stacked=True)
+        if legend:
+            ax.text(0.15, 0.17, legend, color='red', fontweight='bold')
+        if steps > 0:
+            ax.set_xlabel("subdivision bins")
 
     def add_col_desc(self, fig, col):
         fig.text(0, 0.95, "%s (%s)" % (col, self.cols_desc[col]),
