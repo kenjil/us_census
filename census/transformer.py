@@ -2,6 +2,8 @@
 import numpy as np
 import yaml
 from meta import cols_desc
+from stats import BasicStatistic
+from sklearn.preprocessing import OneHotEncoder
 
 
 class ValueMapper(object):
@@ -21,8 +23,8 @@ class ValueMapper(object):
         self.non_valids = non_valids
         # values considered as specials
         self.specials = specials
-        # mapping is a bijective correspondance
-        self.mapping = self.__default_mapping()
+        # mapping
+        self.mapping = {}
 
     # list of columns where the mapper should be build
     def get_string_cols(self):
@@ -31,12 +33,31 @@ class ValueMapper(object):
         return [col for col in cols if self.df[col].dtype in col_types]
 
     # build mapper that assign to each unique value an integer
-    def __default_mapping(self):
-        unique_values = {}
-        for col in self.get_string_cols():
-            unique_values[col] = \
-                self.__build_mapping_from_list(self.df[col].unique())
-        return unique_values
+    def build_default_mapping(self, sort=False, cols_list=None):
+        if cols_list is None:
+            cols_list = self.get_string_cols()
+        for col in cols_list:
+            self.build_default_col_mapping(col, sort=sort)
+            # unique_values[col] = \
+            #     self.__build_mapping_from_list(self.df[col].unique())
+        # self.mapping = unique_values
+
+    def build_default_col_mapping(self, col, sort=False):
+        if sort is True:
+            bs = BasicStatistic(self.df,
+                                non_valids=self.non_valids,
+                                specials=self.specials,
+                                cols_desc={})
+            target_value_sort = ' 50000+.'
+            sort_index = bs.percentage(bs.count_values_per_target(col))[target_value_sort]
+            sort_index = sort_index.copy()
+            sort_index.sort()
+            self.build_col_mapping(col, sort_index.index)
+        else:
+            self.build_col_mapping(col, self.df[col].unique())
+
+    def build_col_mapping(self, col, lst):
+        self.mapping[col] = self.__build_mapping_from_list(lst)
 
     # build a dict from the unique values
     def __build_mapping_from_list(self, lst):
@@ -75,8 +96,8 @@ class ValueMapper(object):
             self.mapping = yaml.load(infile.read())
 
     # return the df after the mapping has been processed
-    def map_result(self):
-        new_df = self.df.copy(deep=True)
+    def map_result(self, df):
+        new_df = df.copy(deep=True)
         for col in self.get_string_cols():
             new_df[col] = new_df[col].map(self.mapping[col])
         return new_df
@@ -101,6 +122,36 @@ class ValueMapper(object):
         for k, v in sorted(col_infos.iteritems()):
             s += ["%s : %s" % (str(k), str(v))]
         return "\n".join(s)
+
+
+class Preprocess(object):
+    """docstring for Preprocess"""
+    def __init__(self, settings={},
+                 non_valids=[],
+                 specials=[]):
+        super(Preprocess, self).__init__()
+        self.settings = settings
+        self.mapper = None
+
+    # set the mapper for categorical preprocessing
+    def set_mapper(self, learndf,
+                   non_valids=[],
+                   specials=[],
+                   cat_cols=[]):
+        self.mapper = ValueMapper(learndf,
+                             non_valids=non_valids,
+                             specials=specials)
+        self.mapper.build_default_mapping(sort=True, cols_list=cat_cols)
+
+    def set_OneHotEncoder(self, learndf, cat_cols=[]):
+        enc = OneHotEncoder()
+        enc.fit(learndf[cat_cols])
+        
+    def run(self, df):
+        new_df = df.copy()
+        if self.mapper:
+            new_df = self.mapper.map_result(new_df)
+        return new_df
 
 
 if __name__ == '__main__':
