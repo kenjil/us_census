@@ -49,27 +49,26 @@ class BasicStatistic(object):
                       no_plot_zero=False):
         # plot raw data
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
+        ax_raw, ax_perct = tuple(axes)
         t = self.count_values_per_target(col)
         if no_plot_zero:
             zeros_nb = sum(t.ix[0])
             t = t.ix[t.index != 0]
-        t.plot(ax=axes[0])
+        t.plot(ax=ax_raw, marker='o')
+        ax_raw.set_xlabel("raw data")
+        if no_plot_zero:
+            ax_raw.set_ylabel("zero value not plotted : %d" % (zeros_nb),
+                              color='red', fontweight='bold')
         # plot percentage data (perct_col if needed)
         if perct_col is not None:
             t = self.count_values_per_target(perct_col)
         t_perct = t.astype(float).div(t.sum(1), axis=0)
-        t_perct.plot(kind='bar', ax=axes[1], stacked=True)
-        # add some text for infos
+        t_perct.plot(kind='bar', ax=ax_perct, stacked=True)
         self.add_col_desc(fig, col)
-        if no_plot_zero:
-            fig.text(0.15, 0.67,
-                     "zero value not plotted : %d" % zeros_nb,
-                     color='red', fontweight='bold')
         if perct_legend:
-            fig.text(0.15, 0.17, perct_legend, color='red', fontweight='bold')
+            ax_perct.text(0.15, 0.17, perct_legend, color='red', fontweight='bold')
         if perct_col is not None:
-            fig.text(0.25, 0.05, "subdivision bins",
-                     horizontalalignment='center')
+            ax_perct.set_xlabel("subdivision bins")
 
     def add_col_desc(self, fig, col):
         fig.text(0, 0.95, "%s (%s)" % (col, self.cols_desc[col]),
