@@ -83,10 +83,10 @@ class ValueMapper(object):
 
     # return a string with infos on col and its numerical values
     def get_col_info(self, col):
-        col_meta_infos = [line for line in cols_desc if line[0] == col]
+        # col_meta_infos = [line for line in cols_desc if line[0] == col]
         col_infos = {
-            'Code': col_meta_infos[0][0],
-            'Description': col_meta_infos[0][1]
+            'Code': col,
+            'Description': cols_desc[col]
         }
         if col in self.mapping:
             for s, k in self.mapping[col].iteritems():
