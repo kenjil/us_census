@@ -23,7 +23,7 @@ class BasicStatistic(object):
 
     # plot statistics of col when it is not numeric
     # col is a string
-    def plot_class_stat(self, col):
+    def plot_cat_stat(self, col):
         # plot raw data
         t = self.count_values_per_target(col)
         idx_arrangements = [self.specials, self.non_valids]
@@ -73,6 +73,7 @@ class BasicStatistic(object):
             t = self.count_values_per_target(perct_col)
         else:
             t = self.count_values_per_target(col)
+            legend = None
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=ax, stacked=True)
         if legend:
