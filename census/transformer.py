@@ -4,6 +4,7 @@ import yaml
 from meta import cols_desc
 from stats import BasicStatistic
 from sklearn.preprocessing import OneHotEncoder
+from pandas import DataFrame, concat
 
 
 class ValueMapper(object):
@@ -62,8 +63,9 @@ class ValueMapper(object):
     # build a dict from the unique values
     def __build_mapping_from_list(self, lst):
         # non valids and special values are treated the same way
-        negative_indexed_vals = self.specials + self.non_valids
-        j_n = -1  # will be increment on value encounter
+        last_vals = self.specials + self.non_valids
+        last_vals = [i for i in lst if i in last_vals]
+        j_n = len(lst) - 1  # will be increment negatively on value encounter
 
         booleans = {' Yes': 1, ' No': 0}
 
@@ -75,7 +77,7 @@ class ValueMapper(object):
         dct = {}
         for i in range(len(lst)):
             value = lst[i]
-            if value in negative_indexed_vals:
+            if value in last_vals:
                 dct[value] = j_n
                 j_n -= 1
             elif value in booleans:
@@ -126,32 +128,66 @@ class ValueMapper(object):
 
 class Preprocess(object):
     """docstring for Preprocess"""
-    def __init__(self, settings={},
-                 non_valids=[],
-                 specials=[]):
+    def __init__(self, learndf, settings={}):
         super(Preprocess, self).__init__()
+        self.learndf = learndf
         self.settings = settings
         self.mapper = None
+        # puts in memory to speed up run
+        self.__mapper_enc = None
+        self.__mapper_dummy_cols_name = None
+
+    # categorical cols list define in mapper
+    @property
+    def cat_cols(self):
+        if self.mapper:
+            return self.mapper.mapping.keys()
+        else:
+            return []
 
     # set the mapper for categorical preprocessing
-    def set_mapper(self, learndf,
+    def set_mapper(self,
                    non_valids=[],
                    specials=[],
                    cat_cols=[]):
-        self.mapper = ValueMapper(learndf,
-                             non_valids=non_valids,
-                             specials=specials)
+        self.mapper = ValueMapper(self.learndf,
+                                  non_valids=non_valids,
+                                  specials=specials)
         self.mapper.build_default_mapping(sort=True, cols_list=cat_cols)
+        self.set_mapper_enc()
+        self.set_mapper_dummy_cols_name()
 
-    def set_OneHotEncoder(self, learndf, cat_cols=[]):
+    # OneHotEncoder implicitely defined by mapper
+    def set_mapper_enc(self):
         enc = OneHotEncoder()
-        enc.fit(learndf[cat_cols])
-        
+        n_learndf = self.mapper.map_result(self.learndf)
+        enc.fit(n_learndf[self.cat_cols])
+        self.__mapper_enc = enc
+
+    # cols name of the dummy variables
+    # by self.produced get_OneHotEncoder
+    def set_mapper_dummy_cols_name(self):
+        cols_name = []
+        for col in self.cat_cols:
+            for j in range(len(self.mapper.mapping[col])):
+                cols_name += [col+'__%d' % j]
+        self.__mapper_dummy_cols_name = cols_name
+
     def run(self, df):
         new_df = df.copy()
+        dummys_df = self.get_dummys(df)
+        return concat([new_df, dummys_df], axis=1)
+
+    def get_dummys(self, df):
         if self.mapper:
-            new_df = self.mapper.map_result(new_df)
-        return new_df
+            new_df = self.mapper.map_result(df)
+            enc = self.__mapper_enc
+            cols_name = self.__mapper_dummy_cols_name
+            data_ar = enc.transform(new_df[self.cat_cols]).toarray()
+            return DataFrame(data_ar, columns=cols_name)
+        else:
+            return None
+
 
 
 if __name__ == '__main__':
