@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pylab as P
 from numpy import floor
-from pandas import Index
+from pandas import Index, concat
 
 
 class BasicStatistic(object):
@@ -10,22 +10,20 @@ class BasicStatistic(object):
     BARH_FIG_WIDTH = 8  # inches
 
     """Docstring"""
-    def __init__(self, df, non_valids=[], specials=[], cols_desc={}):
+    def __init__(self, non_valids=[], specials=[]):
         super(BasicStatistic, self).__init__()
-        self.df = df
         self.non_valids = non_valids
         self.specials = specials
-        self.cols_desc = cols_desc
 
     # return the percentage dataframe of a numerical columns dataframe
-    def percentage(self, num_df):
+    def percentage(self, num_df, label=None):
         return num_df.astype(float).div(num_df.sum(1), axis=0).fillna(0)
 
     # plot statistics of col when it is not numeric
-    # col is a string
-    def plot_cat_stat(self, col):
+    # col_df, group_by are columns dataframe of same height
+    def plot_cat_stat(self, col_df, group_by, label=''):
         # plot raw data
-        t = self.count_values_per_target(col)
+        t = self.count_values_per_target(col_df, group_by)
         idx_arrangements = [self.specials, self.non_valids]
         if idx_arrangements:
             t = self.arrange_reindex(t, idx_arrangements)
@@ -38,25 +36,25 @@ class BasicStatistic(object):
         t_perct = self.percentage(t)
         t_perct.plot(kind='barh', stacked=True, ax=axes[1])
         # add some text for infos
-        self.add_col_desc(fig, col)
+        self.add_col_desc(fig, col_df.name, label=label)
 
     # plot statistic of col when numeric
-    # col is a string
+    # col_df, group_by are columns dataframe of same height
     # perct_steps is of number bins for percentage plot
-    def plot_num_stat(self, col, no_plot_zero=False,
-                      perct_steps=0, perct_zero_aside=False
+    def plot_num_stat(self, col_df, group_by, no_plot_zero=False,
+                      perct_steps=0, perct_zero_aside=False, label=''
                       ):
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         ax_raw, ax_perct = tuple(axes)
-        self.plot_num_stat_raw(col, no_plot_zero=no_plot_zero, ax=ax_raw)
-        self.plot_num_stat_perct(col,
+        self.plot_num_stat_raw(col_df, group_by, no_plot_zero=no_plot_zero, ax=ax_raw)
+        self.plot_num_stat_perct(col_df, group_by,
                                  steps=perct_steps,
                                  zero_aside=perct_zero_aside,
                                  ax=ax_perct)
-        self.add_col_desc(fig, col)
+        self.add_col_desc(fig, col_df.name, label)
 
-    def plot_num_stat_raw(self, col, no_plot_zero=False, ax=None):
-        t = self.count_values_per_target(col)
+    def plot_num_stat_raw(self, col_df, group_by, no_plot_zero=False, ax=None):
+        t = self.count_values_per_target(col_df, group_by)
         if no_plot_zero:
             zeros_nb = sum(t.ix[0])
             t = t.ix[t.index != 0]
@@ -66,13 +64,13 @@ class BasicStatistic(object):
             ax.set_ylabel("zero value not plotted :\n%d" % (zeros_nb),
                           color='red', fontweight='bold')
 
-    def plot_num_stat_perct(self, col, steps=0, zero_aside=False, ax=None):
+    def plot_num_stat_perct(self, col_df, group_by, steps=0, zero_aside=False, ax=None):
         if steps > 0:
             perct_col, legend = \
-                self.stepped(self.df[col], steps, zero_aside=zero_aside)
-            t = self.count_values_per_target(perct_col)
+                self.stepped(col_df, steps, zero_aside=zero_aside)
+            t = self.count_values_per_target(perct_col, group_by)
         else:
-            t = self.count_values_per_target(col)
+            t = self.count_values_per_target(col_df, group_by)
             legend = None
         t_perct = t.astype(float).div(t.sum(1), axis=0)
         t_perct.plot(kind='bar', ax=ax, stacked=True)
@@ -81,8 +79,10 @@ class BasicStatistic(object):
         if steps > 0:
             ax.set_xlabel("subdivision bins")
 
-    def add_col_desc(self, fig, col):
-        fig.text(0, 0.95, "%s (%s)" % (col, self.cols_desc[col]),
+    def add_col_desc(self, fig, string, label=''):
+        if label != '':
+            label = "(%s)" % label
+        fig.text(0, 0.95, "%s %s" % (string, label),
                  # horizontalalignment='center',
                  fontweight='bold',
                  fontsize=14)
@@ -103,8 +103,9 @@ class BasicStatistic(object):
         return col_df, legend
 
     # get the table counting pairs (col_value, TARGET_value)
-    def count_values_per_target(self, col):
-        grouped = self.df.groupby([col, 'TARGET'])
+    def count_values_per_target(self, col, group_by):
+        df = concat([col, group_by], axis=1)
+        grouped = df.groupby([col.name, group_by.name])
         return grouped.size().unstack().fillna(0)
 
     # reindex a class col_df
