@@ -1,137 +1,79 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import yaml
-from meta import cols_desc
 from stats import BasicStatistic
-from sklearn.preprocessing import OneHotEncoder
-from pandas import DataFrame, concat
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from pandas import DataFrame, concat, Series
 
 
-class ValueMapper(object):
+class LabelMapper(object):
     """class to produce a mapper that sets
     the replacement of the non numeric values to numeric value
     in dataframe"""
 
-    NON_VALIDS_DEFAULT = [' Do not know', ' ?']
-    SPECIALS_DEFAULT = [' Not in universe']
-
-    def __init__(self, df,
-                 non_valids=NON_VALIDS_DEFAULT,
-                 specials=SPECIALS_DEFAULT):
-        super(ValueMapper, self).__init__()
-        self.df = df
-        # values considered as non valid
-        self.non_valids = non_valids
-        # values considered as specials
-        self.specials = specials
+    def __init__(self):
+        super(LabelMapper, self).__init__()
         # mapping
         self.mapping = {}
 
-    # list of columns where the mapper should be build
-    def get_string_cols(self):
-        col_types = [np.dtype('O')]
-        cols = self.df.columns
-        return [col for col in cols if self.df[col].dtype in col_types]
-
     # build mapper that assign to each unique value an integer
-    def build_default_mapping(self, sort=False, cols_list=None):
-        if cols_list is None:
-            cols_list = self.get_string_cols()
-        for col in cols_list:
-            self.build_default_col_mapping(col, sort=sort)
-            # unique_values[col] = \
-            #     self.__build_mapping_from_list(self.df[col].unique())
-        # self.mapping = unique_values
+    # when df is a series, cat_cols can be omitted
+    # when df is a DataFrame, cat_cols is the list of categorical columns
+    def fit(self, df, cat_cols=None, sort_col_df=None, sort_value=None):
+        # if df is a pandas Series
+        if cat_cols is None:
+            self.build_default_col_mapping(
+                df, sort_col_df=sort_col_df, sort_value=sort_value)
+        # if df is a pandas DataFrame
+        else:
+            for col in cat_cols:
+                self.build_default_col_mapping(
+                    df[col], sort_col_df=sort_col_df, sort_value=sort_value)
 
-    def build_default_col_mapping(self, col, sort=False):
-        if sort is True:
-            bs = BasicStatistic(self.df,
-                                non_valids=self.non_valids,
-                                specials=self.specials,
-                                cols_desc={})
-            target_value_sort = ' 50000+.'
-            sort_index = bs.percentage(bs.count_values_per_target(col))[target_value_sort]
+    # build mapper for a columns
+    def build_default_col_mapping(
+            self, col_df,
+            sort_col_df=None, sort_value=None):
+        if sort_col_df is not None:
+            bs = BasicStatistic()
+            t = bs.count_values_per_target(col_df, sort_col_df)
+            sort_index = \
+                bs.percentage(t)[sort_value]
             sort_index = sort_index.copy()
             sort_index.sort()
-            self.build_col_mapping(col, sort_index.index)
+            self.build_col_mapping(col_df.name, list(sort_index.index))
         else:
-            self.build_col_mapping(col, self.df[col].unique())
+            self.build_col_mapping(col_df.name, col_df.unique())
 
-    def build_col_mapping(self, col, lst):
-        self.mapping[col] = self.__build_mapping_from_list(lst)
-
-    # build a dict from the unique values
-    def __build_mapping_from_list(self, lst):
-        # non valids and special values are treated the same way
-        last_vals = self.specials + self.non_valids
-        last_vals = [i for i in lst if i in last_vals]
-        j_n = len(lst) - 1  # will be increment negatively on value encounter
-
-        booleans = {' Yes': 1, ' No': 0}
-
-        # value for valid
-        j_v = 0
-
-        # TODO buggy when values mix booleans and other valid values
-        # keys 0 and 1 will be overriden !
-        dct = {}
-        for i in range(len(lst)):
-            value = lst[i]
-            if value in last_vals:
-                dct[value] = j_n
-                j_n -= 1
-            elif value in booleans:
-                dct[value] = booleans[value]
-            else:
-                dct[value] = j_v
-                j_v += 1
-        return dct
-
-    # save map to file
-    def to_yamlfile(self, yaml_filepath):
-        with open(yaml_filepath, 'w') as outfile:
-            outfile.write(yaml.dump(self.mapping, default_flow_style=False))
-
-    # load map from file
-    def from_yamlfile(self, yaml_filepath):
-        with open(yaml_filepath, 'rt') as infile:
-            self.mapping = yaml.load(infile.read())
+    def build_col_mapping(self, col_name, lst):
+        le = LabelEncoder()
+        le.fit(lst)
+        self.mapping[col_name] = le
 
     # return the df after the mapping has been processed
     def map_result(self, df):
         new_df = df.copy(deep=True)
-        for col in self.get_string_cols():
-            new_df[col] = new_df[col].map(self.mapping[col])
-        return new_df
-
-    # return a string with infos on col and its numerical values
-    def get_col_info(self, col):
-        # col_meta_infos = [line for line in cols_desc if line[0] == col]
-        col_infos = {
-            'Code': col,
-            'Description': cols_desc[col]
-        }
-        if col in self.mapping:
-            for s, k in self.mapping[col].iteritems():
-                col_infos.setdefault(k, [])
-                col_infos[k] += [s]
+        if type(df) == Series:
+            return self.mapping[df.name].transform(df)
         else:
-            col_infos['Type'] = 'numeric'
-        return self.__dict_to_string(col_infos)
-
-    def __dict_to_string(self, col_infos):
-        s = []
-        for k, v in sorted(col_infos.iteritems()):
-            s += ["%s : %s" % (str(k), str(v))]
-        return "\n".join(s)
+            cols = [col for col in self.mapping if col in df.columns]
+            for col in cols:
+                new_df[col] = self.mapping[col].transform(new_df[col])
+            return new_df
 
 
-class Preprocess(object):
-    """docstring for Preprocess"""
-    def __init__(self, learndf, settings={}):
-        super(Preprocess, self).__init__()
-        self.learndf = learndf
-        self.settings = settings
+class Transformer(object):
+    """Transformer is the class to produce for a raw census DataFrame
+    a new DataFrame with :
+    - new boolean predictive variables
+    - dummy coding varibles
+
+    The transformer is fitted with on the learndf dataset
+    with Transformer.fit(learndf)
+
+    The new dataframe produced by Transformer.transform(df) is equivalent
+    to df in term of data information
+    """
+    def __init__(self):
+        super(Transformer, self).__init__()
         self.mapper = None
         # puts in memory to speed up run
         self.__mapper_enc = None
@@ -146,21 +88,23 @@ class Preprocess(object):
             return []
 
     # set the mapper for categorical preprocessing
-    def set_mapper(self,
-                   non_valids=[],
-                   specials=[],
-                   cat_cols=[]):
-        self.mapper = ValueMapper(self.learndf,
-                                  non_valids=non_valids,
-                                  specials=specials)
-        self.mapper.build_default_mapping(sort=True, cols_list=cat_cols)
-        self.set_mapper_enc()
+    def fit(self, learndf,
+            cat_cols=None,
+            sort_col_df=None,
+            sort_value=None):
+        self.mapper = LabelMapper()
+        self.mapper.fit(
+            learndf,
+            cat_cols=cat_cols,
+            sort_col_df=sort_col_df,
+            sort_value=sort_value)
+        self.set_mapper_enc(learndf)
         self.set_mapper_dummy_cols_name()
 
     # OneHotEncoder implicitely defined by mapper
-    def set_mapper_enc(self):
+    def set_mapper_enc(self, learndf):
         enc = OneHotEncoder()
-        n_learndf = self.mapper.map_result(self.learndf)
+        n_learndf = self.mapper.map_result(learndf)
         enc.fit(n_learndf[self.cat_cols])
         self.__mapper_enc = enc
 
@@ -169,14 +113,15 @@ class Preprocess(object):
     def set_mapper_dummy_cols_name(self):
         cols_name = []
         for col in self.cat_cols:
-            for j in range(len(self.mapper.mapping[col])):
+            for j in range(len(self.mapper.mapping[col].classes_)):
                 cols_name += [col+'__%d' % j]
         self.__mapper_dummy_cols_name = cols_name
 
-    def run(self, df):
+    def transform(self, df):
         new_df = df.copy()
-        dummys_df = self.get_dummys(df)
-        return concat([new_df, dummys_df], axis=1)
+        dummys_df = self.get_dummys(new_df)
+        # new_df = new_df.drop(self.cat_cols, 1)
+        return concat([new_df.drop(self.cat_cols, 1), dummys_df], axis=1)
 
     def get_dummys(self, df):
         if self.mapper:
@@ -188,7 +133,20 @@ class Preprocess(object):
         else:
             return None
 
+    def get_numericals(self, df):
+        pass
 
+    def get_booleans(self, df):
+        pass
+
+    # retrieve a string to interpret dummy variables from their name
+    def interpret_dummy_col_name(self, string):
+        if string.find('__') != -1:
+            col, num_val = string.split('__')
+            num_val = int(num_val)
+            labelenc = self.mapper.mapping[col]
+            return "%s = %s" % (col, labelenc.inverse_transform(num_val))
+        return "%s varible" % string
 
 if __name__ == '__main__':
     pass
