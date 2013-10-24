@@ -46,7 +46,8 @@ class BasicStatistic(object):
                       ):
         fig, axes = P.subplots(2, 1, figsize=(10, 7))
         ax_raw, ax_perct = tuple(axes)
-        self.plot_num_stat_raw(col_df, group_by, no_plot_zero=no_plot_zero, ax=ax_raw)
+        self.plot_num_stat_raw(
+            col_df, group_by, no_plot_zero=no_plot_zero, ax=ax_raw)
         self.plot_num_stat_perct(col_df, group_by,
                                  steps=perct_steps,
                                  zero_aside=perct_zero_aside,
@@ -64,7 +65,8 @@ class BasicStatistic(object):
             ax.set_ylabel("zero value not plotted :\n%d" % (zeros_nb),
                           color='red', fontweight='bold')
 
-    def plot_num_stat_perct(self, col_df, group_by, steps=0, zero_aside=False, ax=None):
+    def plot_num_stat_perct(self, col_df, group_by,
+                            steps=0, zero_aside=False, ax=None):
         if steps > 0:
             perct_col, legend = \
                 self.stepped(col_df, steps, zero_aside=zero_aside)
