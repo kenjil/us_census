@@ -26,18 +26,18 @@ class FindBest(object):
             y_test = y_test[:limit]
 
         print("We're using score '%s'." % self.score)
-        clf = GridSearchCV(
+        gscv = GridSearchCV(
             self.predictor, self.tuned_parameters, cv=self.cv,
             scoring=self.score, n_jobs=-1)
-        clf.fit(X, y)
-        self._report_results(clf.grid_scores_)
+        gscv.fit(X, y)
+        self._report_results(gscv.grid_scores_)
         print("Best predictor is\n")
-        print(clf.best_estimator_)
-        score_report(clf, X_test, y_test)
-        return clf.best_estimator_
+        print(gscv.best_estimator_)
+        score_report(gscv, X_test, y_test)
+        return gscv.best_estimator_
 
-    def _report_results(self, clf_grid_scores):
-        for params, mean_score, scores in clf_grid_scores:
+    def _report_results(self, gscv_grid_scores):
+        for params, mean_score, scores in gscv_grid_scores:
             print(
                 "%0.3f (+/-%0.03f) for %r"
                 % (mean_score, scores.std() * 2, params))
