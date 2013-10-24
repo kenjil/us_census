@@ -9,4 +9,5 @@ data must be download from [here](http://thomasdata.s3.amazonaws.com/ds/us_censu
 # Usage
 
 ## Running code
-Code must be run with the ipython notebook script  `ipython/run.ipynb`.
+- Code can be run with the ipython notebook script  `ipython/run.ipynb`.
+- Code for linear regression is contained in `run_lr.py`.
