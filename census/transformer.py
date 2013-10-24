@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from stats import BasicStatistic
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler
 from pandas import DataFrame, concat, Series
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class LabelMapper(object):
@@ -75,6 +76,7 @@ class Transformer(object):
     def __init__(self):
         super(Transformer, self).__init__()
         self.mapper = None
+        self.vbools = {}
         # puts in memory to speed up run
         self.__mapper_enc = None
         self.__mapper_dummy_cols_name = None
@@ -87,8 +89,17 @@ class Transformer(object):
         else:
             return []
 
+    # binarized cols list define in binarizer
+    @property
+    def vbool_cols(self):
+        if self.vbools:
+            return self.vbools.keys()
+        else:
+            return []
+
     # set the mapper for categorical preprocessing
-    def fit(self, learndf,
+    def fit_dummification(
+            self, learndf,
             cat_cols=None,
             sort_col_df=None,
             sort_value=None):
@@ -100,6 +111,22 @@ class Transformer(object):
             sort_value=sort_value)
         self.set_mapper_enc(learndf)
         self.set_mapper_dummy_cols_name()
+
+    # set the list of boolean variables that must be derived
+    # if vbool_vals is None, boolean variables will be of the
+    # form : value == 0
+    #  vbool_cols: list of columns name
+    #  vbool_vals: list of columns value to check against
+    def fit_vbools(
+            self,
+            vbool_cols,
+            vbool_vals=None):
+        if vbool_vals is None:
+            for col in vbool_cols:
+                self.vbools[col] = 0
+        else:
+            for i in range(len(vbool_cols)):
+                self.vbools[vbool_cols[i]] = vbool_vals[i]
 
     # OneHotEncoder implicitely defined by mapper
     def set_mapper_enc(self, learndf):
@@ -117,12 +144,16 @@ class Transformer(object):
                 cols_name += [col+'__%d' % j]
         self.__mapper_dummy_cols_name = cols_name
 
+    # transform df to get dummified and booleans variables
     def transform(self, df):
         new_df = df.copy()
         dummys_df = self.get_dummys(new_df)
-        # new_df = new_df.drop(self.cat_cols, 1)
-        return concat([new_df.drop(self.cat_cols, 1), dummys_df], axis=1)
+        bools_df = self.get_booleans(new_df)
+        return concat(
+            [new_df.drop(self.cat_cols, 1), bools_df, dummys_df],
+            axis=1)
 
+    # return the df with the dummy variables
     def get_dummys(self, df):
         if self.mapper:
             new_df = self.mapper.map_result(df)
@@ -133,11 +164,15 @@ class Transformer(object):
         else:
             return None
 
-    def get_numericals(self, df):
-        pass
-
+    # return the df with the boolean variables
     def get_booleans(self, df):
-        pass
+        if self.vbools:
+            vbools_df_stack = []
+            for col in self.vbools:
+                serie = (df[col] == self.vbools[col]).astype(int)
+                serie.name = "%s_eq_%d" % (col, self.vbools[col])
+                vbools_df_stack += [serie]
+        return concat(vbools_df_stack, axis=1)
 
     # retrieve a string to interpret dummy variables from their name
     def interpret_dummy_col_name(self, string):
@@ -146,7 +181,23 @@ class Transformer(object):
             num_val = int(num_val)
             labelenc = self.mapper.mapping[col]
             return "%s = %s" % (col, labelenc.inverse_transform(num_val))
-        return "%s varible" % string
+        return "%s columns" % string
+
+
+class MyScaler(BaseEstimator, TransformerMixin):
+    """docstring for MyScaler"""
+    def __init__(self, num_cols):
+        super(MyScaler, self).__init__()
+        self.num_cols = num_cols
+        self.ss = StandardScaler()
+
+    def fit(self, X, y=None):
+        self.ss.fit(X[:, self.num_cols])
+        return self
+
+    def transform(self, X, y=None):
+        X[:, self.num_cols] = self.ss.transform(X[:, self.num_cols])
+        return X
 
 if __name__ == '__main__':
     pass
