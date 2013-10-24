@@ -12,11 +12,12 @@ class CensusLoader(object):
         self.cols = cols
 
     # return a dataframe containing census data
-    def get_data(self):
+    def get_data(self, nrows=None):
         whole = read_csv(
             self.csvfile,
             header=None,
-            names=self.cols
+            names=self.cols,
+            nrows=nrows
             )
         whole.index.name = 'individual'
         return whole
