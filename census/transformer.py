@@ -185,7 +185,7 @@ class Transformer(object):
 
 
 class MyScaler(BaseEstimator, TransformerMixin):
-    """docstring for MyScaler"""
+    """MyScaler scales a subset of the columns"""
     def __init__(self, num_cols):
         super(MyScaler, self).__init__()
         self.num_cols = num_cols
