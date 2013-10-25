@@ -65,6 +65,7 @@ class Transformer(object):
     """Transformer is the class to produce for a raw census DataFrame
     a new DataFrame with :
     - new boolean predictive variables
+    - set the numerical replacement of categorical label
     - dummy coding varibles
 
     The transformer is fitted with on the learndf dataset
@@ -97,18 +98,25 @@ class Transformer(object):
         else:
             return []
 
-    # set the mapper for categorical preprocessing
-    def fit_dummification(
+    # set the mapper for categorical inputs
+    def fit_mapping(
             self, learndf,
             cat_cols=None,
             sort_col_df=None,
-            sort_value=None):
+            sort_value=None
+            ):
         self.mapper = LabelMapper()
         self.mapper.fit(
             learndf,
             cat_cols=cat_cols,
             sort_col_df=sort_col_df,
             sort_value=sort_value)
+
+    # set the mapper for categorical preprocessing
+    def fit_dummification(self, learndf):
+        if self.mapper is None:
+            # TODO should raise some error
+            print "No mapper has been fit => dummification error"
         self.set_mapper_enc(learndf)
         self.set_mapper_dummy_cols_name()
 
@@ -147,6 +155,7 @@ class Transformer(object):
     # transform df to get dummified and booleans variables
     def transform(self, df):
         new_df = df.copy()
+        new_df = self.mapper.map_result(new_df)
         dummys_df = self.get_dummys(new_df)
         bools_df = self.get_booleans(new_df)
         return concat(
@@ -155,11 +164,10 @@ class Transformer(object):
 
     # return the df with the dummy variables
     def get_dummys(self, df):
-        if self.mapper:
-            new_df = self.mapper.map_result(df)
+        if self.__mapper_enc is not None:
             enc = self.__mapper_enc
             cols_name = self.__mapper_dummy_cols_name
-            data_ar = enc.transform(new_df[self.cat_cols]).toarray()
+            data_ar = enc.transform(df[self.cat_cols]).toarray()
             return DataFrame(data_ar, columns=cols_name)
         else:
             return None
