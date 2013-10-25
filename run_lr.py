@@ -16,8 +16,10 @@ limit_to_rows = 199523  # corresponds to the whole dataset
 X, y, X_test, y_test, columns, cols_interpret = load_datas(
     nrows=limit_to_rows,
     remove_cols=['YEAR', 'RESI_REGION', 'RESI_PREV', 'RESI_1YEAR',
-                 'MIG_REGION', 'MIG_MOVE', 'MIG_MSA', 'INSTANCE_WEIGHT',
-                 'ORIG_MOTHER'])
+                 # 'MIG_REGION', 'MIG_MOVE', 'MIG_MSA', 'INSTANCE_WEIGHT',
+                 # 'ORIG_MOTHER'
+                 ],
+    dummify=True)
 
 
 # SET MODEL TYPE IN A PIPELINE
@@ -40,7 +42,7 @@ TUNING OF HYPERPARAMETERS EXAMPLE
 
 print("CV hyperparameter to be tuned if needed")
 tuned_parameters = [
-    {'lr__C': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+    {'lr__C': [0.01, 0.05, 0.075, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
      'lr__tol': [0.01], 'lr__class_weight': ['auto']}]
 fb = FindBest(
     predictor,
@@ -87,4 +89,3 @@ coefs = predictor.steps[-1][1].coef_[0]
 influence = most_influential(coefs, cols_interpret, thres=0.3)
 report_influential(influence, nb=20, grouped=False)
 report_influential(influence, nb=100, grouped=True)
-
