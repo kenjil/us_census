@@ -15,32 +15,51 @@ CAT_COLS = [col for col in cols if col not in NUM_COLS + [TARGET]]
 
 # for linear regression
 # return data X, y, X_test, y_test, X_cols, X_cols_interpret
-def load_datas(dir='data', nrows=None, remove_cols=[], dummify=False):
+def load_datas(
+        dir='data',
+        nrows=None,
+        remove_cols=[],
+        sort_mapping=False,
+        dummify=False,
+        booleans=False
+        ):
     print "Loading data from disk..."
     learnds = CensusLoader(dir+'/census_income_learn.csv', cols=cols)
-    learndf = learnds.get_data(nrows=nrows)
     testds = CensusLoader(dir+'/census_income_test.csv', cols=cols)
+
+    learndf = learnds.get_data(nrows=nrows)
     testdf = testds.get_data(nrows=nrows)
 
     # TODO could be done in a better way
     # using the read_csv option index_col in census.Loader
     if remove_cols:
         print("Remove columns %r..." % remove_cols)
-        cat_cols = [col for col in CAT_COLS if col not in remove_cols]
-        # num_cols = [col for col in NUM_COLS if col not in remove_cols]
-        learndf = learndf.drop(remove_cols, axis=1)
-        testdf = testdf.drop(remove_cols, axis=1)
+    cat_cols = [col for col in CAT_COLS if col not in remove_cols]
+    learndf = learndf.drop(remove_cols, axis=1)
+    testdf = testdf.drop(remove_cols, axis=1)
 
-    print("Transform to dummified, boolean, numerical variables...")
+    print("Transforming variables...")
 
-    # dummification, booleans, all numerical variables settings
     from census.transformer import Transformer
     ts = Transformer()
-    # create dummy variables from categorical variables
-    ts.fit_mapping(learndf, cat_cols=cat_cols)
-    ts.fit_dummification(learndf)
+    # create numerical variables from categorical variables
+    if sort_mapping is True:
+        ts.fit_mapping(
+            learndf,
+            cat_cols=cat_cols,
+            sort_col_df=learndf[TARGET],
+            sort_value=TARGET_VALUE_1
+            )
+    else:
+        ts.fit_mapping(learndf, cat_cols=cat_cols)
+
+    # dummification
+    if dummify is True:
+        ts.fit_dummification(learndf)
+
     # create a booleans for col with many zeros
-    ts.fit_vbools(NUM_COLS_WITH_ZERO_TREATMENT)
+    if booleans:
+        ts.fit_vbools(NUM_COLS_WITH_ZERO_TREATMENT)
 
     # perform transformation
     n_learndf = ts.transform(learndf.drop([TARGET], axis=1))
