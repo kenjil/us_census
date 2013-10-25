@@ -71,17 +71,17 @@ def report_influential(infl, nb=50, grouped=False):
         cat_re = re.compile('^[^\s]*')
         sort_idx = _build_sort_index(infl, cat_re)
 
-        # x -> category_of_x then abs(coef_of_x)
+        # x -> rank_of_category_of_x then abs(coef_of_x)
         def sort_key(x):
             cat = cat_re.search(x[0]).group()
-            return "%s%s" % (sort_idx[cat], abs(x[1]))
+            return "%0.8f%0.8f" % (sort_idx[cat], abs(x[1]))
 
         infl.sort(key=sort_key, reverse=True)
     else:
         print("Sorted by coef\n")
         infl.sort(key=lambda x: abs(x[1]), reverse=True)
     for c in infl[:nb]:
-        print " - %s : %s" % (c[0], c[1])
+        print " - %s : %0.4f" % (c[0], c[1])
 
 
 # build the category sort index
