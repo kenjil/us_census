@@ -155,11 +155,15 @@ class Transformer(object):
     # transform df to get dummified and booleans variables
     def transform(self, df):
         new_df = df.copy()
-        new_df = self.mapper.map_result(new_df)
-        dummys_df = self.get_dummys(new_df)
+        new_df = self.mapper.map_result(new_df).astype(float)
+        if self.__mapper_enc:
+            dummys_df = self.get_dummys(new_df)
+            new_df = new_df.drop(self.cat_cols, 1)
+        else:
+            dummys_df = None
         bools_df = self.get_booleans(new_df)
         return concat(
-            [new_df.drop(self.cat_cols, 1), bools_df, dummys_df],
+            [new_df, bools_df, dummys_df],
             axis=1)
 
     # return the df with the dummy variables
@@ -180,7 +184,9 @@ class Transformer(object):
                 serie = (df[col] == self.vbools[col]).astype(int)
                 serie.name = "%s_eq_%d" % (col, self.vbools[col])
                 vbools_df_stack += [serie]
-        return concat(vbools_df_stack, axis=1)
+            return concat(vbools_df_stack, axis=1)
+        else:
+            return None
 
     # retrieve a string to interpret dummy variables from their name
     def interpret_dummy_col_name(self, string):
